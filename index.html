@@ -1,0 +1,1142 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+
+<meta charset="UTF-8">
+
+<meta
+  name="viewport"
+  content="width=device-width, initial-scale=1.0">
+
+<title>
+  Scanner Kehadiran
+</title>
+
+
+<!-- QR Scanner Library -->
+
+<script src="
+https://unpkg.com/html5-qrcode
+"></script>
+
+
+<style>
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+
+  margin: 0;
+
+  font-family:
+    Arial,
+    sans-serif;
+
+  background:
+    #111827;
+
+  color: white;
+
+}
+
+.container {
+
+  max-width: 600px;
+
+  margin: auto;
+
+  padding: 20px;
+
+}
+
+.header {
+
+  text-align: center;
+
+  margin-bottom: 20px;
+
+}
+
+.header h1 {
+
+  margin-bottom: 5px;
+
+}
+
+.header p {
+
+  color: #9ca3af;
+
+}
+
+
+.card {
+
+  background:
+    #1f2937;
+
+  border-radius: 16px;
+
+  padding: 20px;
+
+  box-shadow:
+    0 10px 30px
+    rgba(0,0,0,.3);
+
+}
+
+
+label {
+
+  display: block;
+
+  margin-bottom: 8px;
+
+  font-weight: bold;
+
+}
+
+
+input {
+
+  width: 100%;
+
+  padding: 13px;
+
+  border-radius: 8px;
+
+  border: 1px solid #4b5563;
+
+  background: #111827;
+
+  color: white;
+
+  margin-bottom: 15px;
+
+  font-size: 16px;
+
+}
+
+
+button {
+
+  width: 100%;
+
+  padding: 14px;
+
+  border: none;
+
+  border-radius: 8px;
+
+  font-size: 16px;
+
+  font-weight: bold;
+
+  cursor: pointer;
+
+}
+
+
+#startButton {
+
+  background: #2563eb;
+
+  color: white;
+
+}
+
+
+#stopButton {
+
+  background: #4b5563;
+
+  color: white;
+
+  margin-top: 10px;
+
+  display: none;
+
+}
+
+
+#reader {
+
+  width: 100%;
+
+  margin-top: 20px;
+
+  border-radius: 12px;
+
+  overflow: hidden;
+
+}
+
+
+.result {
+
+  display: none;
+
+  margin-top: 20px;
+
+  padding: 20px;
+
+  border-radius: 12px;
+
+  text-align: center;
+
+}
+
+
+.result.success {
+
+  display: block;
+
+  background: #064e3b;
+
+  border: 1px solid #10b981;
+
+}
+
+
+.result.warning {
+
+  display: block;
+
+  background: #78350f;
+
+  border: 1px solid #f59e0b;
+
+}
+
+
+.result.error {
+
+  display: block;
+
+  background: #7f1d1d;
+
+  border: 1px solid #ef4444;
+
+}
+
+
+.result-icon {
+
+  font-size: 50px;
+
+}
+
+
+.result-name {
+
+  font-size: 24px;
+
+  font-weight: bold;
+
+  margin: 10px 0;
+
+}
+
+
+.result-info {
+
+  color: #d1d5db;
+
+  line-height: 1.6;
+
+}
+
+
+.status {
+
+  margin-top: 15px;
+
+  padding: 10px;
+
+  border-radius: 8px;
+
+  background: #111827;
+
+  color: #d1d5db;
+
+  font-size: 14px;
+
+}
+
+
+.small {
+
+  color: #9ca3af;
+
+  font-size: 12px;
+
+  margin-top: 15px;
+
+  text-align: center;
+
+}
+
+</style>
+
+</head>
+
+
+<body>
+
+
+<div class="container">
+
+
+<div class="header">
+
+  <h1>
+    Scanner Kehadiran
+  </h1>
+
+  <p>
+    Workshop Kepenulisan Artikel Ilmiah
+  </p>
+
+</div>
+
+
+<div class="card">
+
+
+<label>
+  ID Panitia
+</label>
+
+
+<input
+  type="text"
+  id="scannerId"
+  value="PANITIA01"
+  placeholder="Contoh: PANITIA01">
+
+
+<button
+  id="startButton"
+  onclick="startScanner()">
+
+  📷 Mulai Scanner
+
+</button>
+
+
+<button
+  id="stopButton"
+  onclick="stopScanner()">
+
+  ⛔ Stop Scanner
+
+</button>
+
+
+<div id="reader">
+</div>
+
+
+<div
+  id="status"
+  class="status">
+
+  Scanner belum aktif.
+
+</div>
+
+
+<div
+  id="result"
+  class="result">
+
+  <div
+    id="resultIcon"
+    class="result-icon">
+  </div>
+
+
+  <div
+    id="resultName"
+    class="result-name">
+  </div>
+
+
+  <div
+    id="resultInfo"
+    class="result-info">
+  </div>
+
+</div>
+
+
+<div class="small">
+
+  Pastikan browser menggunakan HTTPS
+  dan izin kamera telah diberikan.
+
+</div>
+
+
+</div>
+
+
+</div>
+
+
+<script>
+
+/*******************************************************
+ * KONFIGURASI
+ *******************************************************/
+
+
+const GAS_API_URL =
+  'GANTI_DENGAN_URL_WEB_APP_GAS';
+
+
+let scanner = null;
+
+let scanning = false;
+
+let processing = false;
+
+
+/*******************************************************
+ * START SCANNER
+ *******************************************************/
+
+async function startScanner() {
+
+  if (scanning) {
+    return;
+  }
+
+
+  const scannerId =
+    document
+      .getElementById('scannerId')
+      .value
+      .trim();
+
+
+  if (!scannerId) {
+
+    alert(
+      'Masukkan ID panitia terlebih dahulu.'
+    );
+
+    return;
+
+  }
+
+
+  hideResult();
+
+
+  setStatus(
+    'Meminta akses kamera...'
+  );
+
+
+  try {
+
+    scanner =
+      new Html5Qrcode(
+        'reader'
+      );
+
+
+    const config = {
+
+      fps: 10,
+
+      qrbox: function(
+        viewfinderWidth,
+        viewfinderHeight
+      ) {
+
+        const size =
+          Math.min(
+            viewfinderWidth,
+            viewfinderHeight
+          ) * 0.7;
+
+        return {
+          width: size,
+          height: size
+        };
+
+      },
+
+      aspectRatio: 1.0
+
+    };
+
+
+    await scanner.start(
+
+      {
+        facingMode: 'environment'
+      },
+
+      config,
+
+      onScanSuccess,
+
+      onScanFailure
+
+    );
+
+
+    scanning = true;
+
+    document
+      .getElementById(
+        'startButton'
+      )
+      .style.display = 'none';
+
+
+    document
+      .getElementById(
+        'stopButton'
+      )
+      .style.display = 'block';
+
+
+    setStatus(
+      'Scanner aktif. Arahkan kamera ke QR peserta.'
+    );
+
+
+  } catch (error) {
+
+    console.error(error);
+
+    setStatus(
+      'Gagal membuka kamera: ' +
+      error
+    );
+
+    alert(
+      'Kamera tidak dapat dibuka. ' +
+      'Pastikan menggunakan Chrome Android, ' +
+      'HTTPS, dan izin kamera sudah diberikan.'
+    );
+
+  }
+
+}
+
+
+/*******************************************************
+ * STOP SCANNER
+ *******************************************************/
+
+async function stopScanner() {
+
+  if (!scanner) {
+    return;
+  }
+
+
+  try {
+
+    await scanner.stop();
+
+    scanner.clear();
+
+  } catch (error) {
+
+    console.error(error);
+
+  }
+
+
+  scanner = null;
+
+  scanning = false;
+
+
+  document
+    .getElementById(
+      'startButton'
+    )
+    .style.display = 'block';
+
+
+  document
+    .getElementById(
+      'stopButton'
+    )
+    .style.display = 'none';
+
+
+  setStatus(
+    'Scanner dihentikan.'
+  );
+
+}
+
+
+/*******************************************************
+ * QR DETECTED
+ *******************************************************/
+
+function onScanSuccess(
+  decodedText,
+  decodedResult
+) {
+
+  if (processing) {
+    return;
+  }
+
+
+  processing = true;
+
+
+  console.log(
+    'QR detected:',
+    decodedText
+  );
+
+
+  // QR kita memang berisi token.
+  const token =
+    extractToken(decodedText);
+
+
+  if (!token) {
+
+    showError(
+      'QR tidak memiliki token yang valid.'
+    );
+
+    setTimeout(
+      () => {
+        processing = false;
+      },
+      1500
+    );
+
+    return;
+
+  }
+
+
+  setStatus(
+    'QR terbaca. Memvalidasi...'
+  );
+
+
+  const scannerId =
+    document
+      .getElementById(
+        'scannerId'
+      )
+      .value
+      .trim();
+
+
+  callGasApi(
+    token,
+    scannerId
+  );
+
+}
+
+
+/*******************************************************
+ * EXTRACT TOKEN
+ *******************************************************/
+
+function extractToken(value) {
+
+  value =
+    String(value || '')
+      .trim();
+
+
+  // Jika QR hanya berisi token
+  if (
+    /^[A-Fa-f0-9]{20,64}$/.test(
+      value
+    )
+  ) {
+
+    return value;
+
+  }
+
+
+  // Jika suatu saat QR berisi URL
+  try {
+
+    const url =
+      new URL(value);
+
+
+    const token =
+      url.searchParams.get(
+        'token'
+      );
+
+
+    if (token) {
+      return token;
+    }
+
+  } catch (error) {
+
+    // Bukan URL.
+
+  }
+
+
+  return null;
+
+}
+
+
+/*******************************************************
+ * CALL GAS API
+ *
+ * JSONP:
+ * GitHub Pages -> GAS
+ *******************************************************/
+
+function callGasApi(
+  token,
+  scannerId
+) {
+
+  const callbackName =
+    'gasCallback_' +
+    Date.now();
+
+
+  window[callbackName] =
+    function(response) {
+
+      try {
+
+        handleApiResponse(
+          response
+        );
+
+      } finally {
+
+        delete window[
+          callbackName
+        ];
+
+        if (
+          script.parentNode
+        ) {
+
+          script.parentNode
+            .removeChild(
+              script
+            );
+
+        }
+
+      }
+
+    };
+
+
+  const script =
+    document.createElement(
+      'script'
+    );
+
+
+  const params =
+    new URLSearchParams({
+
+      action: 'scan',
+
+      token: token,
+
+      scanner: scannerId,
+
+      callback: callbackName
+
+    });
+
+
+  script.src =
+    GAS_API_URL +
+    '?' +
+    params.toString();
+
+
+  script.onerror =
+    function() {
+
+      delete window[
+        callbackName
+      ];
+
+      showError(
+        'Tidak dapat terhubung ke server.'
+      );
+
+      processing = false;
+
+    };
+
+
+  document
+    .body
+    .appendChild(
+      script
+    );
+
+}
+
+
+/*******************************************************
+ * HANDLE API RESPONSE
+ *******************************************************/
+
+function handleApiResponse(
+  response
+) {
+
+  console.log(
+    'API response:',
+    response
+  );
+
+
+  if (!response) {
+
+    showError(
+      'Respons server kosong.'
+    );
+
+    processing = false;
+
+    return;
+
+  }
+
+
+  if (
+    response.status ===
+    'ATTENDANCE_RECORDED'
+  ) {
+
+    showSuccess(
+      response
+    );
+
+    return;
+
+  }
+
+
+  if (
+    response.status ===
+    'ALREADY_ATTENDED'
+  ) {
+
+    showWarning(
+      response
+    );
+
+    return;
+
+  }
+
+
+  showError(
+    response.message ||
+    'QR tidak valid.'
+  );
+
+}
+
+
+/*******************************************************
+ * SUCCESS
+ *******************************************************/
+
+function showSuccess(
+  data
+) {
+
+  showResult(
+    'success',
+    '✓',
+    data.name,
+    `
+      <strong>HADIR</strong><br>
+      ${escapeHtml(
+        data.institution
+      )}<br><br>
+
+      ID: ${
+        escapeHtml(
+          data.participant_id
+        )
+      }<br>
+
+      Waktu: ${
+        escapeHtml(
+          data.time
+        )
+      }
+    `
+  );
+
+
+  setStatus(
+    'Kehadiran berhasil dicatat.'
+  );
+
+
+  // Delay sebelum scanner bisa membaca
+  // QR berikutnya.
+
+  setTimeout(
+    function() {
+
+      hideResult();
+
+      processing = false;
+
+      setStatus(
+        'Siap melakukan scan berikutnya.'
+      );
+
+    },
+    2500
+  );
+
+}
+
+
+/*******************************************************
+ * DUPLICATE
+ *******************************************************/
+
+function showWarning(
+  data
+) {
+
+  showResult(
+    'warning',
+    '⚠',
+    data.name,
+    `
+      <strong>SUDAH HADIR</strong><br>
+      ${escapeHtml(
+        data.institution
+      )}<br><br>
+
+      ID: ${
+        escapeHtml(
+          data.participant_id
+        )
+      }<br>
+
+      Scan pertama:<br>
+      ${
+        escapeHtml(
+          data.time
+        )
+      }
+    `
+  );
+
+
+  setStatus(
+    'Peserta sudah melakukan absensi.'
+  );
+
+
+  setTimeout(
+    function() {
+
+      hideResult();
+
+      processing = false;
+
+      setStatus(
+        'Siap melakukan scan berikutnya.'
+      );
+
+    },
+    2500
+  );
+
+}
+
+
+/*******************************************************
+ * ERROR
+ *******************************************************/
+
+function showError(
+  message
+) {
+
+  showResult(
+    'error',
+    '✕',
+    'SCAN DITOLAK',
+    escapeHtml(
+      message
+    )
+  );
+
+
+  setStatus(
+    message
+  );
+
+
+  setTimeout(
+    function() {
+
+      hideResult();
+
+      processing = false;
+
+    },
+    2500
+  );
+
+}
+
+
+/*******************************************************
+ * RESULT UI
+ *******************************************************/
+
+function showResult(
+  className,
+  icon,
+  name,
+  info
+) {
+
+  const result =
+    document.getElementById(
+      'result'
+    );
+
+
+  result.className =
+    'result ' +
+    className;
+
+
+  document.getElementById(
+    'resultIcon'
+  ).textContent =
+    icon;
+
+
+  document.getElementById(
+    'resultName'
+  ).textContent =
+    name;
+
+
+  document.getElementById(
+    'resultInfo'
+  ).innerHTML =
+    info;
+
+}
+
+
+function hideResult() {
+
+  document.getElementById(
+    'result'
+  ).className =
+    'result';
+
+}
+
+
+/*******************************************************
+ * STATUS
+ *******************************************************/
+
+function setStatus(
+  text
+) {
+
+  document.getElementById(
+    'status'
+  ).textContent =
+    text;
+
+}
+
+
+/*******************************************************
+ * SCAN FAILURE
+ *******************************************************/
+
+function onScanFailure(
+  error
+) {
+
+  // Sengaja dikosongkan.
+  // QR scanner akan memanggil fungsi ini
+  // terus selama belum menemukan QR.
+
+}
+
+
+/*******************************************************
+ * ESCAPE HTML
+ *******************************************************/
+
+function escapeHtml(
+  text
+) {
+
+  return String(
+    text || ''
+  )
+  .replace(
+    /&/g,
+    '&amp;'
+  )
+  .replace(
+    /</g,
+    '&lt;'
+  )
+  .replace(
+    />/g,
+    '&gt;'
+  )
+  .replace(
+    /"/g,
+    '&quot;'
+  )
+  .replace(
+    /'/g,
+    '&#039;'
+  );
+
+}
+
+</script>
+
+</body>
+
+</html>
